@@ -1,0 +1,10 @@
+const path = require('path');
+
+require('ts-node/register');
+
+module.exports = {
+    'config': path.resolve(__dirname, 'squelize/config', 'config.js'),
+    'models-path': path.resolve(__dirname, 'squelize', 'models'),
+    'seeders-path': path.resolve(__dirname, 'squelize', 'seeders'),
+    'migrations-path': path.resolve(__dirname, 'squelize', 'migrations')
+};
