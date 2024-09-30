@@ -11,6 +11,8 @@ import { getConstSSMEnvConfig } from 'config/services/ssm.config.const';
 import { SequelizeModule } from '@nestjs/sequelize';
 import { getDatabaseConfigFromSSM } from 'config/services/ssm.db.config';
 import { CustomConfigModule } from 'config/custom.config.module';
+import { SSMConfigService } from 'config/services/ssm.config.cache.service';
+import { User } from 'sequelize/models';
 
 @Module({
   imports: [
@@ -22,15 +24,25 @@ import { CustomConfigModule } from 'config/custom.config.module';
       load: [getConstSSMEnvConfig],
       envFilePath: '.env',
     }),
-    JwtModule.register({
+    JwtModule.registerAsync({
+      imports: [CustomConfigModule],
+      useFactory: async (ssmConfigService: SSMConfigService) => {
+        const secret = await ssmConfigService.getConfigValue(
+          '/ag-backend-test/auth/authSecret',
+        );
+        return {
+          secret,
+          signOptions: { expiresIn: '60s' },
+        };
+      },
+      inject: [SSMConfigService],
       global: true,
-      secret: 'test_secret',
-      signOptions: { expiresIn: '60s' },
     }),
     SequelizeModule.forRootAsync({
       name: 'default',
       useFactory: async () => await getDatabaseConfigFromSSM(),
     }),
+    SequelizeModule.forFeature([User]),
   ],
   controllers: [AppController],
   providers: [

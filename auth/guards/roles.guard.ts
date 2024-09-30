@@ -20,9 +20,9 @@ export class RolesGuard implements CanActivate {
       context.getHandler(),
       context.getClass(),
     ]);
-    // if (isPublic) {
-    //   return true;
-    // }
+    if (isPublic) {
+      return true;
+    }
 
     // Retrieve the required roles from the metadata
     const requiredRoles = this.reflector.getAllAndOverride<Role[]>(ROLES_KEY, [

@@ -11,7 +11,7 @@ export class AppController {
   @Public()
   @Roles(Role.Admin, Role.User)
   @Get()
-  getHello(): string {
-    return this.appService.getHello();
+  async getHello(): Promise<string> {
+    return await this.appService.getHello();
   }
 }
