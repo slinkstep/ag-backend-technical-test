@@ -1,3 +1,5 @@
+// THIS FILE IS JUST USED FOR LOCAL PURPOSES, WHEN RUNNING SEQUELIZE CLI COMMANDS
+
 require('dotenv').config({ path: __dirname + '/../../.env' });
 
 
