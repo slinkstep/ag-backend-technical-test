@@ -20,12 +20,10 @@ export async function getDatabaseConfigFromSSM(): Promise<SequelizeModuleOptions
   const BATCH_SIZE = 10;
   const fullConfig = {};
 
-
   const batches = [];
   for (let i = 0; i < parameters.length; i += BATCH_SIZE) {
     batches.push(parameters.slice(i, i + BATCH_SIZE));
   }
-
 
   for (const batch of batches) {
     const response = await ssm.getParameters({
@@ -33,7 +31,7 @@ export async function getDatabaseConfigFromSSM(): Promise<SequelizeModuleOptions
       WithDecryption: true,
     });
 
-    response.Parameters?.forEach(param => {
+    response.Parameters?.forEach((param) => {
       const key = param.Name.split('/').pop() || param.Name;
       if (param.Value !== undefined) {
         fullConfig[key] = param.Value;

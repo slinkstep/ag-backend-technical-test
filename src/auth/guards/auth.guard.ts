@@ -10,15 +10,14 @@ import { GqlExecutionContext } from '@nestjs/graphql';
 
 import { Request } from 'express';
 import { IS_PUBLIC_KEY } from '../decorators/auth.public.route.decorator';
-import { GlobalLogger } from 'logger/global.logger.service';
-
+import { GlobalLogger } from 'src/logger/global.logger.service';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
   constructor(
     private jwtService: JwtService,
     private reflector: Reflector,
-    private logger: GlobalLogger
+    private logger: GlobalLogger,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -55,8 +54,7 @@ export class AuthGuard implements CanActivate {
       // Attach the user payload to the request object
       request['user'] = payload;
     } catch (error) {
-    
-      this.logger.error('Auth guard error', error)
+      this.logger.error('Auth guard error', error);
 
       throw new UnauthorizedException('Invalid or expired token');
     }
