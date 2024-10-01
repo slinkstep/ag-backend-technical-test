@@ -6,9 +6,12 @@ import {
   HasMany,
   CreatedAt,
   UpdatedAt,
+  ForeignKey,
+  BelongsTo,
 } from 'sequelize-typescript';
 import { Transaction } from './transactions.model';
 import { CampaignCategory, CampaignStatus } from './enums/enums';
+import { Admin } from './admins.model';
 
 @Table({ tableName: 'campaigns' })
 export class Campaign extends Model<Campaign> {
@@ -48,7 +51,6 @@ export class Campaign extends Model<Campaign> {
     validate: {
       min: 0,
     },
-    
   })
   playableBalanceAmount: number;
 
@@ -86,6 +88,17 @@ export class Campaign extends Model<Campaign> {
 
   @HasMany(() => Transaction)
   transactions: Transaction[];
+
+  @ForeignKey(() => Admin)
+  @Column({
+    field: 'created_by',
+    type: DataType.INTEGER.UNSIGNED,
+    allowNull: false,
+  })
+  createdBy: number;
+
+  @BelongsTo(() => Admin)
+  admin: Admin;
 
   @CreatedAt
   @Column({

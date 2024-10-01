@@ -11,18 +11,20 @@ export class AdminsRepository {
   ) {}
 
   async findAll(): Promise<Admin[]> {
-    return this.adminModel.findAll();
+    return await this.adminModel.findAll();
   }
 
   async findById(id: number): Promise<Admin> {
-    return this.adminModel.findByPk(id);
+    return await this.adminModel.findByPk(id);
   }
 
   async findByEmail(email: string): Promise<Admin | null> {
-    return this.adminModel.findOne({ where: { authProviderEmail: email } });
+    return await this.adminModel.findOne({
+      where: { authProviderEmail: email },
+    });
   }
 
   async createAdmin(createAdminDto: CreateAdminDto): Promise<Admin> {
-    return this.adminModel.create(createAdminDto);
+    return await this.adminModel.create(createAdminDto);
   }
 }

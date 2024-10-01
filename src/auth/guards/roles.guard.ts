@@ -15,7 +15,6 @@ export class RolesGuard implements CanActivate {
   constructor(private reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
-    // Determine if the route is marked as public
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       context.getHandler(),
       context.getClass(),
@@ -24,16 +23,14 @@ export class RolesGuard implements CanActivate {
       return true;
     }
 
-    // Retrieve the required roles from the metadata
     const requiredRoles = this.reflector.getAllAndOverride<Role[]>(ROLES_KEY, [
       context.getHandler(),
       context.getClass(),
     ]);
     if (!requiredRoles) {
-      return true; // If no roles are required, allow access
+      return true;
     }
 
-    // Determine the context type (GraphQL or HTTP)
     const ctxType = context.getType().toString();
 
     let user: any;
@@ -50,7 +47,6 @@ export class RolesGuard implements CanActivate {
       throw new ForbiddenException('Access denied: No roles found for user');
     }
 
-    // Check if the user has at least one of the required roles
     const hasRole = requiredRoles.some((role) => user.roles.includes(role));
     if (!hasRole) {
       throw new ForbiddenException('Access denied: Insufficient permissions');

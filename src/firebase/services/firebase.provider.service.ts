@@ -54,23 +54,13 @@ export class FirebaseProviderService {
     password: string,
     displayName: string,
   ): Promise<UserRecord> {
-    try {
-      const user = await this.getFirebaseAuth().createUser({
-        email,
-        password,
-        displayName,
-      });
-      this.logger.log(`Firebase user created with UID: ${user.uid}`);
-      return user;
-    } catch (error) {
-      this.logger.error(
-        `Failed to create Firebase user: ${error.message}`,
-        error.stack,
-      );
-      throw new InternalServerErrorException(
-        'Failed to create user in authentication service.',
-      );
-    }
+    const user = await this.getFirebaseAuth().createUser({
+      email,
+      password,
+      displayName,
+    });
+    this.logger.log(`Firebase user created with UID: ${user.uid}`);
+    return user;
   }
 
   public async requestUserPasswordReset(email: string): Promise<string> {

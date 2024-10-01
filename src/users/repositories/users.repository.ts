@@ -11,18 +11,20 @@ export class UsersRepository {
   ) {}
 
   async findAll(): Promise<User[]> {
-    return this.userModel.findAll();
+    return await this.userModel.findAll();
   }
 
   async findById(id: number): Promise<User> {
-    return this.userModel.findByPk(id);
+    return await this.userModel.findByPk(id);
   }
 
   async findByEmail(email: string): Promise<User | null> {
-    return this.userModel.findOne({ where: { authProviderEmail: email } });
+    return await this.userModel.findOne({
+      where: { authProviderEmail: email },
+    });
   }
 
   async createUser(createUserDto: CreateUserDto): Promise<User> {
-    return this.userModel.create(createUserDto);
+    return await this.userModel.create(createUserDto);
   }
 }

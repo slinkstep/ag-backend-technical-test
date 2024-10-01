@@ -1,5 +1,5 @@
 import { Module, Global } from '@nestjs/common';
-import { SSMConfigService } from './services/ssm.config.cache.service'; // Adjust the path as needed
+import { SSMConfigService } from './services/ssm.config.cache.service';
 
 @Global()
 @Module({

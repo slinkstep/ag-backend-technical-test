@@ -72,7 +72,6 @@ export class SSMConfigService {
     }
   }
 
-  // Fetch a batch of parameters and update the cache
   private async fetchParameters(batch: string[]): Promise<void> {
     const params = {
       Names: batch,
@@ -87,7 +86,6 @@ export class SSMConfigService {
         }
       });
 
-      // Log missing parameters
       const fetchedNames = data.Parameters?.map((p) => p.Name) || [];
       const missing = batch.filter((name) => !fetchedNames.includes(name));
       if (missing.length > 0) {

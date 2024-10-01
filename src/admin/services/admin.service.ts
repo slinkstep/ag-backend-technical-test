@@ -12,54 +12,31 @@ import { Admin } from 'sequelize/models';
 import { LoginUserInput } from 'graphql/inputs/user/login.user.input';
 import { AuthResponseAdmin } from 'graphql/dto/login.response.admin.dto';
 import { AdminsRepository } from '../repositories/admin.repository';
-import { UsersRepository } from 'src/users/repositories/users.repository';
 import { CreateAdminDto } from '../dto/create-admin.dto';
+import { AuthService } from 'src/auth/services/auth.service';
 
 @Injectable()
 export class AdminService {
   constructor(
     private adminsRepository: AdminsRepository,
-    private usersRepository: UsersRepository,
     private firebaseService: FirebaseProviderService,
     private jwtService: JwtService,
+    private authService: AuthService,
   ) {}
 
   async registerUser(input: RegisterAdminInput): Promise<Admin> {
     try {
-      // Check if admin already exists
-      const existingAdmin = await this.adminsRepository.findByEmail(
+      const createdAdminAuthProvider = await this.authService.createUser(
         input.authProviderEmail,
+        input.password,
+        input.name,
+        Role.Admin,
       );
-
-      if (existingAdmin) {
-        throw new UnauthorizedException('Admin already exists');
-      }
-
-      const existingUser = await this.usersRepository.findByEmail(
-        input.authProviderEmail,
-      );
-
-      if (existingUser) {
-        throw new UnauthorizedException('Email already exists as user account');
-      }
-
-      const createdAdmin =
-        await this.firebaseService.createUserWithEmailAndPassword(
-          input.authProviderEmail,
-          input.password,
-          input.name,
-        );
-
-      if (!createdAdmin) {
-        throw new InternalServerErrorException(
-          'Failed to create admin in authentication service.',
-        );
-      }
 
       const createAdminDto: CreateAdminDto = {
         name: input.name,
         authProviderEmail: input.authProviderEmail,
-        authProviderId: createdAdmin.uid,
+        authProviderId: createdAdminAuthProvider.uid,
       };
 
       const admin = await this.adminsRepository.createAdmin(createAdminDto);
@@ -78,7 +55,6 @@ export class AdminService {
   }
 
   async loginUser(input: LoginUserInput): Promise<AuthResponseAdmin> {
-    // Retrieve user from the database
     const admin = await this.adminsRepository.findByEmail(
       input.authProviderEmail,
     );
@@ -87,7 +63,6 @@ export class AdminService {
       throw new UnauthorizedException('Admin not found.');
     }
 
-    // Authenticate with Firebase
     const firebaseUser =
       await this.firebaseService.verifyUserWithEmailAndPassword(
         input.authProviderEmail,
@@ -102,7 +77,6 @@ export class AdminService {
       throw new UnauthorizedException('Invalid email or password.');
     }
 
-    // Generate JWT token
     const token = await this.jwtService.signAsync({
       sub: admin.id,
       email: admin.authProviderEmail,

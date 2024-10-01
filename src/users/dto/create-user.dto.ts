@@ -1,4 +1,12 @@
-import { IsEmail, IsNotEmpty, IsString, Length } from 'class-validator';
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsPositive,
+  IsString,
+  Length,
+} from 'class-validator';
 
 export class CreateUserDto {
   @IsString({ message: 'Name must be a string.' })
@@ -13,4 +21,14 @@ export class CreateUserDto {
   @IsString({ message: 'Auth Provider ID must be a string.' })
   @IsNotEmpty({ message: 'Auth Provider ID is required.' })
   authProviderId: string;
+
+  @IsOptional()
+  @IsNumber({}, { message: 'realBalance must be a number.' })
+  @IsPositive({ message: 'realBalance must be a positive number.' })
+  realBalance?: number;
+
+  @IsOptional()
+  @IsNumber({}, { message: 'bonusBalance must be a number.' })
+  @IsPositive({ message: 'bonusBalance must be a positive number.' })
+  bonusBalance?: number;
 }

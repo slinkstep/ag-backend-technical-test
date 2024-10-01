@@ -6,6 +6,8 @@ import {
   GraphQLISODateTime,
 } from '@nestjs/graphql';
 import { UserStatus } from './enums/enums';
+import { BetType } from './bet.type';
+import { TransactionType } from './transaction.type';
 
 @ObjectType()
 export class UserType {
@@ -27,11 +29,11 @@ export class UserType {
   @Field(() => UserStatus)
   status: UserStatus;
 
-  // @Field(() => [BetType], { nullable: true })
-  // bets?: BetType[];
+  @Field(() => [BetType], { nullable: true })
+  bets?: BetType[];
 
-  // @Field(() => [TransactionType], { nullable: true })
-  // transactions?: TransactionType[];
+  @Field(() => [TransactionType], { nullable: true })
+  transactions?: TransactionType[];
 
   @Field(() => GraphQLISODateTime, { nullable: true })
   createdAt?: Date;

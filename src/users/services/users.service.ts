@@ -1,13 +1,9 @@
-import {
-  Injectable,
-  InternalServerErrorException,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 
 import { JwtService } from '@nestjs/jwt';
 
 import { GlobalLogger } from 'src/logger/global.logger.service';
-import { User } from 'sequelize/models';
+import { Campaign, User } from 'sequelize/models';
 
 import { RegisterUserInput } from 'graphql/inputs/user/register.user.input';
 import { LoginUserInput } from 'graphql/inputs/user/login.user.input';
@@ -16,7 +12,15 @@ import { Role } from 'src/auth/enums/role.enum';
 import { FirebaseProviderService } from 'src/firebase/services/firebase.provider.service';
 import { UsersRepository } from '../repositories/users.repository';
 import { CreateUserDto } from '../dto/create-user.dto';
-import { AdminsRepository } from 'src/admin/repositories/admin.repository';
+import { AuthService } from 'src/auth/services/auth.service';
+import { CampaignService } from 'src/campaigns/services/campaigns.service';
+import { TransactionsService } from 'src/transactions/services/transactions.service';
+import { CreateTransactionDto } from 'src/transactions/dto/create-transaction.dto';
+import {
+  BalanceType,
+  TransactionCategory,
+  TransactionStatus,
+} from 'sequelize/models/enums/enums';
 
 @Injectable()
 export class UsersService {
@@ -25,7 +29,9 @@ export class UsersService {
     private jwtService: JwtService,
     private logger: GlobalLogger,
     private usersRepository: UsersRepository,
-    private adminsRepository: AdminsRepository,
+    private authService: AuthService,
+    private campaignService: CampaignService,
+    private transactionsService: TransactionsService,
   ) {}
 
   async findAll(): Promise<User[]> {
@@ -37,51 +43,62 @@ export class UsersService {
   }
 
   async registerUser(input: RegisterUserInput): Promise<User> {
-    // Check if user already exists
-    const existingUser = await this.usersRepository.findByEmail(
+    let campaign: Campaign = null;
+    if (input.promoCode) {
+      campaign = await this.campaignService.validatePromoCode(input.promoCode);
+    }
+
+    const createdUserAuthProvider = await this.authService.createUser(
       input.authProviderEmail,
+      input.password,
+      input.name,
+      Role.User,
     );
 
-    if (existingUser) {
-      throw new UnauthorizedException('User already exists');
-    }
-
-    const existingAdmin = await this.adminsRepository.findByEmail(
-      input.authProviderEmail,
-    );
-
-    if (existingAdmin) {
-      throw new UnauthorizedException('Admin already exists');
-    }
-
-    const createdUser =
-      await this.firebaseService.createUserWithEmailAndPassword(
-        input.authProviderEmail,
-        input.password,
-        input.name,
-      );
-
-    if (!createdUser) {
-      throw new InternalServerErrorException(
-        'Failed to create user in authentication service.',
-      );
-    }
-
-    // Create user DTO
     const createUserDto: CreateUserDto = {
       name: input.name,
       authProviderEmail: input.authProviderEmail,
-      authProviderId: createdUser.uid,
+      authProviderId: createdUserAuthProvider.uid,
+      realBalance: campaign ? campaign.playableBalanceAmount : 0,
+      bonusBalance: campaign ? campaign.bonusBalanceAmount : 0,
     };
 
-    // Create user using the repository
     const user = await this.usersRepository.createUser(createUserDto);
+
+    // Create campaign playableBalanceAmount transaction
+    if (campaign && campaign.playableBalanceAmount) {
+      const playableBalanceTransaction: CreateTransactionDto = {
+        userId: user.id,
+        amount: campaign.playableBalanceAmount,
+        category: TransactionCategory.CAMPAIGN,
+        status: TransactionStatus.APPROVED,
+        balance: BalanceType.REAL_BALANCE,
+        campaignId: campaign.id,
+      };
+
+      await this.transactionsService.createTransaction(
+        playableBalanceTransaction,
+      );
+    }
+
+    // Create campaign transaction
+    if (campaign && campaign.bonusBalanceAmount) {
+      const bonusBalanceTransaction: CreateTransactionDto = {
+        userId: user.id,
+        amount: campaign.bonusBalanceAmount,
+        category: TransactionCategory.CAMPAIGN,
+        status: TransactionStatus.APPROVED,
+        balance: BalanceType.BONUS_BALANCE,
+        campaignId: campaign.id,
+      };
+
+      await this.transactionsService.createTransaction(bonusBalanceTransaction);
+    }
 
     return user;
   }
 
   async loginUser(input: LoginUserInput): Promise<AuthResponse> {
-    // Retrieve user from the database
     const user = await this.usersRepository.findByEmail(
       input.authProviderEmail,
     );
@@ -90,7 +107,6 @@ export class UsersService {
       throw new UnauthorizedException('User not found.');
     }
 
-    // Authenticate with Firebase
     const firebaseUser =
       await this.firebaseService.verifyUserWithEmailAndPassword(
         input.authProviderEmail,
@@ -105,7 +121,6 @@ export class UsersService {
       throw new UnauthorizedException('Invalid email or password.');
     }
 
-    // Generate JWT token
     const token = await this.jwtService.signAsync({
       sub: user.id,
       email: user.authProviderEmail,

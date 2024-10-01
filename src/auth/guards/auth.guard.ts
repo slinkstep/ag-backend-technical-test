@@ -21,7 +21,6 @@ export class AuthGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    // Determine if the route is marked as public
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       context.getHandler(),
       context.getClass(),
@@ -30,18 +29,15 @@ export class AuthGuard implements CanActivate {
       return true;
     }
 
-    // Determine if the request is GraphQL or REST
     const ctxType = context.getType().toString();
 
     let request: Request;
 
     if (ctxType === 'graphql') {
-      // For GraphQL requests
       const ctx = GqlExecutionContext.create(context);
       const gqlContext = ctx.getContext();
       request = gqlContext.req;
     } else {
-      // For REST or other HTTP requests
       request = context.switchToHttp().getRequest();
     }
 
@@ -51,7 +47,7 @@ export class AuthGuard implements CanActivate {
     }
     try {
       const payload = await this.jwtService.verifyAsync(token);
-      // Attach the user payload to the request object
+
       request['user'] = payload;
     } catch (error) {
       this.logger.error('Auth guard error', error);

@@ -12,11 +12,11 @@ import { SequelizeModule } from '@nestjs/sequelize';
 import { getDatabaseConfigFromSSM } from './config/services/ssm.db.config';
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { GraphQLModule } from '@nestjs/graphql';
-import { User } from 'sequelize/models';
 import { FirebaseModule } from './firebase/firebase.provider.module';
 import { UsersModule } from './users/users.module';
 import { RolesGuard } from './auth/guards/roles.guard';
 import { AuthGuard } from './auth/guards/auth.guard';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -52,9 +52,9 @@ import { AuthGuard } from './auth/guards/auth.guard';
       playground: true,
       context: ({ req }) => ({ req }),
     }),
-    SequelizeModule.forFeature([User]),
     FirebaseModule,
     UsersModule,
+    AdminModule,
   ],
   controllers: [AppController],
   providers: [
