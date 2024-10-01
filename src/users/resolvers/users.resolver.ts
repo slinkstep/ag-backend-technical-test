@@ -6,17 +6,20 @@ import { RegisterUserInput } from 'graphql/inputs/user/register.user.input';
 import { AuthResponse } from 'graphql/dto/login.response.user.dto';
 import { LoginUserInput } from 'graphql/inputs/user/login.user.input';
 import { UserType } from 'graphql/types/user.type';
+import { Role } from 'src/auth/enums/role.enum';
+import { Roles } from 'src/auth/decorators/role.decorator';
 
 @Resolver(() => UserType)
 export class UsersResolver {
   constructor(private readonly usersService: UsersService) {}
 
-  @Public()
+  @Roles(Role.Admin)
   @Query(() => [UserType], { name: 'users' })
   async getUsers(): Promise<UserType[]> {
     return this.usersService.findAll();
   }
 
+  @Roles(Role.Admin)
   @Query(() => UserType, { name: 'user' })
   async getUser(
     @Args('id', { type: () => Int }) id: number,

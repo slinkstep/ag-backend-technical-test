@@ -2,11 +2,10 @@ import {
   Injectable,
   BadRequestException,
   UnauthorizedException,
-  NotFoundException,
 } from '@nestjs/common';
-import { InjectModel } from '@nestjs/sequelize';
+
 import { CreateBetInput } from 'graphql/inputs/bet/bet.input';
-import { Bet, Transaction, User } from 'sequelize/models';
+import { Bet } from 'sequelize/models';
 import {
   BalanceType,
   BetStatus,
@@ -19,33 +18,29 @@ import { CreateBetDto } from '../dto/create-bet.dto';
 import { BetRepository } from '../repositories/bet.repository';
 import { CreateTransactionDto } from 'src/transactions/dto/create-transaction.dto';
 import { TransactionsRepository } from 'src/transactions/repositores/transactions.repository';
+import { UsersRepository } from 'src/users/repositories/users.repository';
 
 @Injectable()
 export class BetService {
   constructor(
-    @InjectModel(Bet) private readonly betModel: typeof Bet,
-    @InjectModel(User) private readonly userModel: typeof User,
-    @InjectModel(Transaction)
-    private readonly transactionModel: typeof Transaction,
     private readonly ssmConfigService: SSMConfigService,
     private betsRepository: BetRepository,
     private transactionsRepository: TransactionsRepository,
+    private usersRepository: UsersRepository,
   ) {}
 
   async getBetById(id: number): Promise<Bet> {
-    const bet = await this.betModel.findByPk(id);
-    if (!bet) {
-      throw new NotFoundException(`Bet with ID ${id} not found`);
-    }
+    const bet = await this.betsRepository.findById(id);
+
     return bet;
   }
 
   async getAllBets(): Promise<Bet[]> {
-    return this.betModel.findAll();
+    return this.betsRepository.findAll();
   }
 
   async createBet(input: CreateBetInput): Promise<Bet> {
-    const user = await this.userModel.findByPk(input.userId);
+    const user = await this.usersRepository.findById(input.userId);
     if (!user) {
       throw new BadRequestException('User not found');
     }
@@ -65,17 +60,23 @@ export class BetService {
       Number(await this.ssmConfigService.getConfigValue('margin')) || 0.05;
 
     if (input.simulateSettlement) {
+      // Reduce user balance
+
+      user[balanceField] -= input.amount;
+      await user.save();
+
       const isWin = Math.random() < input.chance;
 
       let payout = 0;
       if (isWin) {
         payout = input.amount * (1 / input.chance) * margin;
+
+        if (input.isBonus) {
+          payout = payout - input.amount;
+        }
+
         user.realBalance += payout; // Add the payout to user's balance
       }
-
-      // Deduct the bet amount from the user's balance
-      user[balanceField] -= input.amount;
-      await user.save();
 
       const betDTO: CreateBetDto = {
         userId: input.userId,
@@ -91,9 +92,10 @@ export class BetService {
       // Create the bet
       const bet = await this.betsRepository.create(betDTO);
 
+      // Create the bet transaction
       const betTransactionDto: CreateTransactionDto = {
         userId: user.id,
-        amount: -input.amount,
+        amount: input.amount,
         category: TransactionCategory.BET,
         status: TransactionStatus.APPROVED,
         balance: input.isBonus
@@ -104,8 +106,8 @@ export class BetService {
 
       await this.transactionsRepository.createTransaction(betTransactionDto);
 
-      // If the user won, log the payout transaction
       if (isWin) {
+        // Create the win bet transaction
         const winTransactionDto: CreateTransactionDto = {
           userId: user.id,
           amount: payout,
@@ -131,6 +133,23 @@ export class BetService {
     };
 
     const bet = await this.betsRepository.create(betDto);
+
+    // Create the bet transaction
+    const betTransactionDto: CreateTransactionDto = {
+      userId: user.id,
+      amount: input.amount,
+      category: TransactionCategory.BET,
+      status: TransactionStatus.APPROVED,
+      balance: input.isBonus
+        ? BalanceType.BONUS_BALANCE
+        : BalanceType.REAL_BALANCE,
+      betId: bet.id,
+    };
+
+    await this.transactionsRepository.createTransaction(betTransactionDto);
+
+    user[balanceField] -= input.amount;
+    await user.save();
 
     return bet;
   }

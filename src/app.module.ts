@@ -17,6 +17,7 @@ import { UsersModule } from './users/users.module';
 import { RolesGuard } from './auth/guards/roles.guard';
 import { AuthGuard } from './auth/guards/auth.guard';
 import { AdminModule } from './admin/admin.module';
+import { BetModule } from './bets/bet.module';
 
 @Module({
   imports: [
@@ -55,6 +56,7 @@ import { AdminModule } from './admin/admin.module';
     FirebaseModule,
     UsersModule,
     AdminModule,
+    BetModule,
   ],
   controllers: [AppController],
   providers: [

@@ -5,7 +5,7 @@ import { SequelizeModule } from '@nestjs/sequelize';
 import { User } from 'sequelize/models';
 import { UsersRepository } from './repositories/users.repository';
 import { AuthModule } from 'src/auth/auth.module';
-import { CampaignModule } from 'src/campaign/campaign.module';
+import { CampaignModule } from 'src/campaigns/campaign.module';
 import { TransactionsModule } from 'src/transactions/transactions.module';
 
 @Module({
@@ -16,5 +16,6 @@ import { TransactionsModule } from 'src/transactions/transactions.module';
     TransactionsModule,
   ],
   providers: [UsersService, UsersRepository, UsersResolver],
+  exports: [UsersService, UsersRepository],
 })
 export class UsersModule {}

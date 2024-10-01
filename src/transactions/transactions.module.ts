@@ -11,6 +11,6 @@ import { TransactionsRepository } from './repositores/transactions.repository';
 @Module({
   imports: [SequelizeModule.forFeature([Transaction])],
   providers: [TransactionsService, TransactionsRepository, GlobalLogger],
-  exports: [TransactionsService],
+  exports: [TransactionsService, TransactionsRepository],
 })
 export class TransactionsModule {}

@@ -5,19 +5,13 @@ import {
 } from '@nestjs/common';
 
 import { CreateCampaignInput } from 'graphql/inputs/campaign/create.campaign.input';
-
 import { Campaign } from 'sequelize/models';
 import { CampaignCategory } from 'sequelize/models/enums/enums';
-
-import { GlobalLogger } from 'src/logger/global.logger.service';
 import { CampaignRepository } from '../repositories/campaign.repository';
 
 @Injectable()
 export class CampaignService {
-  constructor(
-    private campaignRepository: CampaignRepository,
-    private logger: GlobalLogger,
-  ) {}
+  constructor(private campaignRepository: CampaignRepository) {}
 
   async findAll(): Promise<Campaign[]> {
     return this.campaignRepository.findAll();

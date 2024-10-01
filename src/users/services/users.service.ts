@@ -1,10 +1,6 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
-
 import { JwtService } from '@nestjs/jwt';
-
-import { GlobalLogger } from 'src/logger/global.logger.service';
 import { Campaign, User } from 'sequelize/models';
-
 import { RegisterUserInput } from 'graphql/inputs/user/register.user.input';
 import { LoginUserInput } from 'graphql/inputs/user/login.user.input';
 import { AuthResponse } from 'graphql/dto/login.response.user.dto';
@@ -27,7 +23,6 @@ export class UsersService {
   constructor(
     private firebaseService: FirebaseProviderService,
     private jwtService: JwtService,
-    private logger: GlobalLogger,
     private usersRepository: UsersRepository,
     private authService: AuthService,
     private campaignService: CampaignService,
