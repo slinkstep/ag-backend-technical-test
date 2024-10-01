@@ -4,6 +4,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { Bet } from 'sequelize/models';
 import { CreateBetDto } from '../dto/create-bet.dto';
+import { Transaction } from 'sequelize';
 
 @Injectable()
 export class BetRepository {
@@ -17,7 +18,7 @@ export class BetRepository {
     return await this.betModel.findAll();
   }
 
-  async create(input: CreateBetDto): Promise<Bet> {
-    return await this.betModel.create(input);
+  async create(input: CreateBetDto, transaction?: Transaction): Promise<Bet> {
+    return await this.betModel.create(input, { transaction });
   }
 }

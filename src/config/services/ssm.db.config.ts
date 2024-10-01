@@ -49,6 +49,6 @@ export async function getDatabaseConfigFromSSM(): Promise<SequelizeModuleOptions
     models: [Admin, User, Campaign, Bet, Transaction],
     autoLoadModels: true,
     synchronize: false,
-    logging: false,
+    logging: console.log,
   };
 }

@@ -37,7 +37,7 @@ import { BetModule } from './bets/bet.module';
         );
         return {
           secret,
-          signOptions: { expiresIn: '60s' },
+          signOptions: { expiresIn: '1h' },
         };
       },
       inject: [SSMConfigService],

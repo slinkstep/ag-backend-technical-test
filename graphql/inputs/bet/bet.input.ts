@@ -1,13 +1,9 @@
-import { InputType, Field, Float, Int } from '@nestjs/graphql';
-import { IsBoolean, IsInt, IsNumber, IsString, Min } from 'class-validator';
+import { InputType, Field, Float } from '@nestjs/graphql';
+import { IsBoolean, IsNumber, IsString, Max, Min } from 'class-validator';
 
 
 @InputType()
 export class CreateBetInput {
-  @Field(() => Int)
-  @IsInt()
-  userId: number;
-
   @Field(() => Float)
   @IsNumber()
   @Min(0.01)
@@ -16,6 +12,7 @@ export class CreateBetInput {
   @Field(() => Float)
   @IsNumber()
   @Min(0.01)
+  @Max(1)
   chance: number;
 
   @Field()

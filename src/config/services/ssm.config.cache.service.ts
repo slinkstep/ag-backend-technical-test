@@ -12,7 +12,7 @@ export class SSMConfigService {
   private readonly cacheTTL: number = 3600000;
   private parameterList: Set<string> = new Set([]);
   private isRefreshing: boolean = false;
-  private ssmClient;
+  private ssmClient: SSM;
 
   constructor(private logger: GlobalLogger) {
     this.cacheTTL = 3600000;

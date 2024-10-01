@@ -43,4 +43,7 @@ export class CreateBetDto {
 
   @IsEnum(BetStatus, { message: 'Invalid transaction category.' })
   status?: BetStatus;
+
+  @IsBoolean()
+  isBonus: boolean;
 }

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { Transaction } from 'sequelize/models';
-
+import { Transaction as DBtransaction } from 'sequelize';
 import { CreateTransactionDto } from '../dto/create-transaction.dto';
 
 @Injectable()
@@ -13,8 +13,11 @@ export class TransactionsRepository {
 
   async createTransaction(
     createTransactionDto: CreateTransactionDto,
+    transaction?: DBtransaction,
   ): Promise<Transaction> {
-    return await this.transactionModel.create(createTransactionDto);
+    return await this.transactionModel.create(createTransactionDto, {
+      transaction,
+    });
   }
 
   async findById(id: number): Promise<Transaction | null> {

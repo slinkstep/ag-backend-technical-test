@@ -23,12 +23,16 @@ export class CampaignResolver {
     @Args('input') input: CreateCampaignInput,
     @Context() context,
   ): Promise<CampaignType> {
-    const admin = context.req.user; // Assuming the authenticated admin is attached to the request
-    if (!admin || !admin.id) {
+    const admin = context.req.user;
+
+    if (!admin || !admin.sub) {
       throw new BadRequestException('Invalid admin credentials.');
     }
 
-    const campaign = await this.campaignService.createCampaign(input, admin.id);
+    const campaign = await this.campaignService.createCampaign(
+      input,
+      admin.sub,
+    );
     return campaign;
   }
 }

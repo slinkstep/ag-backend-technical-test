@@ -1,6 +1,5 @@
 import {
   Injectable,
-  InternalServerErrorException,
   UnauthorizedException,
 } from '@nestjs/common';
 
@@ -25,33 +24,22 @@ export class AdminService {
   ) {}
 
   async registerUser(input: RegisterAdminInput): Promise<Admin> {
-    try {
-      const createdAdminAuthProvider = await this.authService.createUser(
-        input.authProviderEmail,
-        input.password,
-        input.name,
-        Role.Admin,
-      );
+    const createdAdminAuthProvider = await this.authService.createUser(
+      input.authProviderEmail,
+      input.password,
+      input.name,
+      Role.Admin,
+    );
 
-      const createAdminDto: CreateAdminDto = {
-        name: input.name,
-        authProviderEmail: input.authProviderEmail,
-        authProviderId: createdAdminAuthProvider.uid,
-      };
+    const createAdminDto: CreateAdminDto = {
+      name: input.name,
+      authProviderEmail: input.authProviderEmail,
+      authProviderId: createdAdminAuthProvider.uid,
+    };
 
-      const admin = await this.adminsRepository.createAdmin(createAdminDto);
+    const admin = await this.adminsRepository.createAdmin(createAdminDto);
 
-      return admin;
-    } catch (error) {
-      if (
-        error instanceof UnauthorizedException ||
-        error instanceof InternalServerErrorException
-      ) {
-        throw error;
-      }
-
-      throw new InternalServerErrorException('Register failed');
-    }
+    return admin;
   }
 
   async loginUser(input: LoginUserInput): Promise<AuthResponseAdmin> {
