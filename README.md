@@ -698,6 +698,9 @@ All financial movements are recorded:
 
 ## Future Steps:
 
+Include a firestore listener for adding real time bet settlement and rollback requests (from admin users or other API's interacting with the system)
+
 - Apply a system for dynamicly set results of specific bet rounds and process the corresponding payments on open bets
 
 - Apply a system for rollin back results on specific bet rounds
+
