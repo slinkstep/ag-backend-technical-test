@@ -29,6 +29,12 @@ This project is a NestJS API that implements a GraphQL endpoint. It serves as a 
 -  **Role-Based Access Control** : Guards and decorators to protect routes based on user roles.
 
 
+## Architecture Diagram
+
+![INFRA ARCHITECTURE](assets/ARCHITECTURE.png)
+
+![DB DIAGRAM](assets/DB_DIAGRAM.png)
+
 ### Prerequisites
 
 -  **Node.js** : Ensure you have Node.js installed (v14 or higher recommended).
