@@ -1,0 +1,203 @@
+name: AWS Infrastructure and Application Deployment
+
+on:
+  push:
+    branches:
+      - infrastructure
+      - master
+
+env:
+  AWS_REGION: ${{ vars.AWS_DEFAULT_REGION }}
+  PROJECT_NAME: ${{ vars.PROJECT_NAME }}
+  HUSKY: 0
+
+jobs:
+  deploy-infrastructure:
+    if: github.ref == 'refs/heads/infrastructure'
+    runs-on: ubuntu-latest
+    name: Deploy Infrastructure Stacks
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Deploy Networking Stack
+        run: |
+          STACK_NAME=${{ env.PROJECT_NAME }}-NetworkingStack
+          TEMPLATE_FILE=infrastructure/networking-stack.yaml
+
+          aws cloudformation deploy \
+            --stack-name $STACK_NAME \
+            --template-file $TEMPLATE_FILE \
+            --parameter-overrides ProjectName=${{ env.PROJECT_NAME }} \
+            --capabilities CAPABILITY_NAMED_IAM
+
+      - name: Wait for Networking Stack Completion
+        run: |
+          STACK_NAME=${{ env.PROJECT_NAME }}-NetworkingStack
+          aws cloudformation wait stack-create-complete --stack-name $STACK_NAME || \
+          aws cloudformation wait stack-update-complete --stack-name $STACK_NAME || \
+          echo "No updates to be performed for $STACK_NAME."
+
+      - name: Deploy Database & SSM Stack
+        run: |
+          STACK_NAME=${{ env.PROJECT_NAME }}-DatabaseSSMStack
+          TEMPLATE_FILE=infrastructure/database-ssm-stack.yaml
+
+          # Generate a valid DB password with only allowed characters
+          DB_PASSWORD=$(openssl rand -base64 16 | tr -d '/@" ')
+
+          # Replace hyphens with underscores in PROJECT_NAME to create DBUserName
+          DB_USERNAME=$(echo "${{ env.PROJECT_NAME }}" | sed 's/-/_/g')_admin
+
+          # Replace hyphens with nothing in PROJECT_NAME to create DBName
+          DB_NAME=$(echo "${{ env.PROJECT_NAME }}" | sed 's/-//g')db
+
+          aws cloudformation deploy \
+            --stack-name $STACK_NAME \
+            --template-file $TEMPLATE_FILE \
+            --parameter-overrides ProjectName=${{ env.PROJECT_NAME }} DBPassword=$DB_PASSWORD DBUserName=$DB_USERNAME DBName=$DB_NAME \
+            --capabilities CAPABILITY_NAMED_IAM
+
+      - name: Wait for Database & SSM Stack Completion
+        run: |
+          STACK_NAME=${{ env.PROJECT_NAME }}-DatabaseSSMStack
+          aws cloudformation wait stack-create-complete --stack-name $STACK_NAME || \
+          aws cloudformation wait stack-update-complete --stack-name $STACK_NAME || \
+          echo "No updates to be performed for $STACK_NAME."
+      
+
+      - name: Describe ECR Repository
+        id: check-ecr
+        run: |
+          if aws ecr describe-repositories --repository-names ${{ vars.PROJECT_NAME }}-api --region ${{ env.AWS_REGION }}; then
+            echo "ECR_EXISTS=true" >> "$GITHUB_OUTPUT";
+          else
+            echo "ECR_EXISTS=false" >> "$GITHUB_OUTPUT";
+          fi
+
+
+      # Step 2: Create ECR Repository if it doesn't exist
+      - name: Create ECR Repository
+        if: steps.check-ecr.outputs.ECR_EXISTS == 'false'
+        run: |
+          aws ecr create-repository \
+            --repository-name ${{ env.PROJECT_NAME }}-api \
+            --image-scanning-configuration scanOnPush=true \
+            --region ${{ env.AWS_REGION }}
+
+      # Step 3: Authenticate with ECR
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # Step 4: Pull Sample Docker Image from Docker Hub
+      - name: Pull Sample Docker Image
+        run: docker pull nginx:latest
+
+      # Step 5: Tag Docker Image for ECR
+      - name: Tag Image
+        run: |
+          IMAGE_URI=${{ steps.login-ecr.outputs.registry }}/${{ env.PROJECT_NAME }}-api:latest
+          docker tag nginx:latest $IMAGE_URI
+
+      # Step 6: Push Docker Image to ECR
+      - name: Push Image
+        run: |
+          IMAGE_URI=${{ steps.login-ecr.outputs.registry }}/${{ env.PROJECT_NAME }}-api:latest
+          docker push $IMAGE_URI
+
+      - name: Deploy ECR & ECS Stack
+        run: |
+          STACK_NAME=${{ env.PROJECT_NAME }}-ECRECSStack
+          TEMPLATE_FILE=infrastructure/ecr-ecs-stack.yaml
+          IMAGE_URI=${{ steps.login-ecr.outputs.registry }}/${{ env.PROJECT_NAME }}-api:latest
+
+          aws cloudformation deploy \
+            --stack-name $STACK_NAME \
+            --template-file $TEMPLATE_FILE \
+            --parameter-overrides ProjectName=${{ env.PROJECT_NAME }} ImageUri=$IMAGE_URI \
+            --capabilities CAPABILITY_NAMED_IAM
+
+      - name: Wait for ECR & ECS Stack Completion
+        run: |
+          STACK_NAME=${{ env.PROJECT_NAME }}-ECR_ECS_Stack
+          aws cloudformation wait stack-create-complete --stack-name $STACK_NAME || \
+          aws cloudformation wait stack-update-complete --stack-name $STACK_NAME || \
+          echo "No updates to be performed for $STACK_NAME."
+
+
+      # Step 1: Fetch ECS Task Public IP
+      - name: Fetch ECS Task Public IP
+        id: fetch-ip
+        run: |
+          ECS_SERVICE_ARN=$(aws ecs list-tasks --cluster ${{ env.PROJECT_NAME }}-ECSCluster --query 'taskArns[0]' --output text)
+          ENI_ID=$(aws ecs describe-tasks --cluster ${{ env.PROJECT_NAME }}-ECSCluster --tasks $ECS_SERVICE_ARN --query 'tasks[0].attachments[0].details[?name==`networkInterfaceId`].value' --output text)
+          PUBLIC_IP=$(aws ec2 describe-network-interfaces --network-interface-ids $ENI_ID --query 'NetworkInterfaces[0].Association.PublicIp' --output text)
+          echo "PUBLIC_IP=${PUBLIC_IP}" >> "$GITHUB_ENV"
+
+      # Step 2: Deploy API Gateway Stack with Public IP
+      - name: Deploy API Gateway Stack
+        run: |
+          STACK_NAME=${{ env.PROJECT_NAME }}-APIGatewayStack
+          TEMPLATE_FILE=infrastructure/api-gateway-stack.yaml
+
+          aws cloudformation deploy \
+            --stack-name $STACK_NAME \
+            --template-file $TEMPLATE_FILE \
+            --parameter-overrides ProjectName=${{ env.PROJECT_NAME }} PublicIP=${{ env.PUBLIC_IP }} \
+            --capabilities CAPABILITY_NAMED_IAM
+
+      - name: Notify Infrastructure Deployment Completion
+        run: echo "Infrastructure stack deployment completed."
+
+  deploy-application:
+    if: github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    name: Build and Deploy Nest.js Application
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build Docker Image
+        run: |
+          IMAGE_URI=${{ steps.login-ecr.outputs.registry }}/${{ env.PROJECT_NAME }}-api:latest
+          docker build -t ${{ env.PROJECT_NAME }}-api .
+          docker tag ${{ env.PROJECT_NAME }}-api:latest $IMAGE_URI
+
+      - name: Push Docker Image to ECR
+        run: |
+          IMAGE_URI=${{ steps.login-ecr.outputs.registry }}/${{ env.PROJECT_NAME }}-api:latest
+          docker push $IMAGE_URI
+
+      - name: Update ECS Service with New Image
+        run: |
+          # # Fetch the ALB Endpoint from the ECR & ECS Stack Outputs
+          
+          # Force ECS Service to use the latest task definition with new Docker image
+          aws ecs update-service \
+            --cluster ${{ env.PROJECT_NAME }}-ECSCluster \
+            --service ${{ env.PROJECT_NAME }}-service \
+            --force-new-deployment
+
+      - name: Notify Application Deployment Completion
+        run: echo "Nest.js application deployed successfully."
