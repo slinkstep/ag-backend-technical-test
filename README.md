@@ -31,6 +31,8 @@ This project is a NestJS API that implements a GraphQL endpoint. It serves as a 
 
 ## Architecture Diagram
 
+The project infrastructure is fully available at the project on the infrastructure
+
 ### Infrastructure
 
 ![INFRA ARCHITECTURE](assets/ARCHITECTURE.png)
@@ -41,11 +43,55 @@ This project is a NestJS API that implements a GraphQL endpoint. It serves as a 
 
 ## Deployed Endpoint
 
-The project deployed version is available at: `https://ji2xdv6110.execute-api.us-east-1.amazonaws.com/graphql`.
+The project deployed version is available at
 
-## LOCAL VERSION
+```bash
 
-### Prerequisites
+https://ji2xdv6110.execute-api.us-east-1.amazonaws.com/graphql
+
+```
+
+## GitHub Actions Workflow Overview 
+
+The project utilizes GitHub Actions to automate the deployment of both the infrastructure and the Nest.js application to AWS. The workflow is designed to streamline the deployment process, ensuring that both infrastructure and application code are consistently and reliably deployed whenever changes are made.
+
+### Workflow Triggers 
+ 
+- **Infrastructure Deployment** : Triggered when code is pushed to the `infrastructure` branch.
+ 
+- **Application Deployment** : Triggered when code is pushed to the `master` branch.
+
+### General Behavior 
+ 
+1. **Infrastructure Deployment (`infrastructure` branch)** : 
+  - **Purpose** : Automate the setup or update of the AWS infrastructure required by the application.
+ 
+  - **Actions** : 
+    - **Deploy CloudFormation Stacks** : Uses AWS CloudFormation templates to provision or update AWS resources such as networking components, databases, ECR repositories, ECS clusters, and API Gateways.
+ 
+    - **Initialize AWS Services** : Sets up necessary services like VPCs, subnets, security groups, and load balancers to support the application.
+ 
+    - **Container Registry Setup** : Creates or updates Amazon Elastic Container Registry (ECR) repositories to store Docker images.
+ 
+    - **Service Configuration** : Establishes the Amazon Elastic Container Service (ECS) configurations required to run the Docker containers.
+ 
+2. **Application Deployment (`master` branch)** : 
+  - **Purpose** : Automate the build and deployment of the Nest.js application to the existing AWS infrastructure.
+ 
+  - **Actions** : 
+    - **Code Checkout** : Retrieves the latest application code from the repository.
+ 
+    - **Docker Image Build** : Builds a Docker image of the Nest.js application using the provided `Dockerfile`.
+ 
+    - **Push to ECR** : Pushes the newly built Docker image to the Amazon ECR repository.
+ 
+    - **ECS Service Update** : Updates the ECS service to deploy the new Docker image, ensuring the application runs with the latest code.
+ 
+    - **Service Stabilization** : Waits for the ECS service to stabilize, confirming that the new version is running successfully.
+
+# LOCAL VERSION
+
+## Prerequisites
 
 -  **Node.js** : Ensure you have Node.js installed (v14 or higher recommended).
 
@@ -59,7 +105,7 @@ The project deployed version is available at: `https://ji2xdv6110.execute-api.us
 
   
 
-### Steps
+## Steps
 
 1.  **Clone the Repository**
 
