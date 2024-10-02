@@ -31,7 +31,7 @@ Resources:
     Properties:
       ApiId: !Ref ECSAPIGateway
       IntegrationType: HTTP_PROXY
-      IntegrationUri: !Sub "http://${PublicIP}:80"  # Use the Public IP passed as a parameter
+      IntegrationUri: !Sub "http://${PublicIP}:80/"  # Use the Public IP passed as a parameter
       IntegrationMethod: ANY
       PayloadFormatVersion: '1.0'  # Required parameter to specify the payload version
 
