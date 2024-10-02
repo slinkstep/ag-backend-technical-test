@@ -145,9 +145,9 @@ Resources:
       GroupDescription: Allow HTTP traffic to ECS tasks
       VpcId: !Ref VPC
       SecurityGroupIngress:
-        - IpProtocol: tcp
-          FromPort: 80
-          ToPort: 80
+        - IpProtocol: -1
+          # FromPort: 80
+          # ToPort: 80
           CidrIp: 0.0.0.0/0  # Allows all incoming traffic on port 80
       Egress:
         - IpProtocol: -1
