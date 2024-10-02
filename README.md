@@ -31,9 +31,19 @@ This project is a NestJS API that implements a GraphQL endpoint. It serves as a 
 
 ## Architecture Diagram
 
+### Infrastructure
+
 ![INFRA ARCHITECTURE](assets/ARCHITECTURE.png)
 
+### Database
+
 ![DB DIAGRAM](assets/DB_DIAGRAM.png)
+
+## Deployed Endpoint
+
+The project deployed version is available at: `https://ji2xdv6110.execute-api.us-east-1.amazonaws.com/graphql`.
+
+## LOCAL VERSION
 
 ### Prerequisites
 
