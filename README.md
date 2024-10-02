@@ -118,6 +118,8 @@ The project utilizes GitHub Actions to automate the deployment of both the infra
  
     - **Service Stabilization** : Waits for the ECS service to stabilize, confirming that the new version is running successfully.
 
+    - **API GATEWAY Update** : Updated the API GATEWAY to point to the lates version of the task running in the ECS service.
+
 # LOCAL VERSION
 
 ## Prerequisites
@@ -695,3 +697,8 @@ All financial movements are recorded:
 
 
 
+## Future Steps:
+
+- Apply a system for dynamicly set results of specific bet rounds and process the corresponding payments on open bets
+
+- Apply a system for rollin back results on specific bet rounds
