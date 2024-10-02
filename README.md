@@ -28,8 +28,7 @@
   - [Authentication and Authorization](#authentication-and-authorization)
   - [Betting Process](#betting-process)
 
-
-  
+- [Future Steps](#future-steps)
 
 ## Introduction
 
