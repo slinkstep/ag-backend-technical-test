@@ -73,41 +73,13 @@ npm  install
 
 ```dotenv
 
-# Firebase
-
-FIREBASE_API_KEY=your-firebase-api-key
-
-FIREBASE_CREDENTIALS=base64-encoded-service-account-json
-
-  
-
-# JWT
-
-JWT_SECRET=your-jwt-secret
-
-  
-
 # Database
+DB_USERNAME=
+DB_PASSWORD=
+DB_DATABASE=
+DB_HOST=
+DB_PORT=
 
-DATABASE_HOST=your-database-host
-
-DATABASE_PORT=your-database-port
-
-DATABASE_USERNAME=your-database-username
-
-DATABASE_PASSWORD=your-database-password
-
-DATABASE_NAME=your-database-name
-
-  
-
-# AWS SSM
-
-AWS_ACCESS_KEY_ID=your-aws-access-key
-
-AWS_SECRET_ACCESS_KEY=your-aws-secret-key
-
-AWS_REGION=your-aws-region
 
 ```
 
@@ -140,8 +112,10 @@ The application uses AWS SSM Parameter Store to fetch configuration values at ru
 
 -  `/ag-backend-test/app/betMargin`: Default bet margin value.
 
-  
+-  `/ag-backend-test/firebase/firebaseCredentials`: Firebase Project credentials
 
+-  `/ag-backend-test/firebase/firebaseApiKey`: Firebase API KEY
+  
 - Other database and Firebase configurations can also be stored in SSM.
 
 **Firebase Configuration:**
@@ -503,6 +477,40 @@ payout
 }
 
 ```
+
+### Authentication and Authorization 
+
+Most of the application's endpoints are protected and require authentication. To interact with these endpoints, you need to:
+ 
+1. **Login** : Use the login mutation to authenticate as a user or admin, depending on the endpoint you wish to access.
+
+**Example for User Login:** 
+
+```graphql
+mutation {
+  loginUser(input: {
+    authProviderEmail: "john@example.com",
+    password: "securepassword"
+  }) {
+    token
+    user {
+      id
+      name
+    }
+  }
+}
+```
+ 
+2. **Retrieve Token** : Upon successful login, you'll receive a JWT token in the response.
+ 
+3. **Set Authorization Header** : For subsequent requests to protected endpoints, include the token in the `Authorization` header using the `Bearer` schema.
+
+**Example Header:** 
+
+```makefile
+Authorization: Bearer <your-jwt-token>
+```
+**Note** : Without including the valid JWT token in the `Authorization` header, you will receive an `Unauthorized` or `Forbidden` error when accessing protected endpoints.
 
   
 ### Betting Process 
