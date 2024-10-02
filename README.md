@@ -1,5 +1,34 @@
 # Backend Technical Test Project
 
+## Table of Contents
+
+- [Introduction](#introduction)
+- [Features](#features)
+- [Architecture Diagram](#architecture-diagram)
+  - [Infrastructure](#infrastructure)
+  - [Database](#database)
+- [Deployed Endpoint](#deployed-endpoint)
+- [GitHub Actions Workflow Overview](#github-actions-workflow-overview)
+  - [Workflow Triggers](#workflow-triggers)
+  - [General Behavior](#general-behavior)
+
+- [Local Version](#local-version)
+  - [Prerequisites](#prerequisites)
+  - [Steps](#steps)
+  - [Configuration](#configuration)
+  - [Running the Application](#running-the-application)
+    - [Development Mode](#development-mode)
+    - [Production Mode](#production-mode)
+    - [Accessing the Application](#accessing-the-application)
+    - [GraphQL Playground](#graphql-playground)
+- [API Documentation](#api-documentation)
+  - [User Operations](#user-operations)
+  - [Admin Operations](#admin-operations)
+  - [Betting Operations](#betting-operations)
+  - [Authentication and Authorization](#authentication-and-authorization)
+  - [Betting Process](#betting-process)
+
+
   
 
 ## Introduction
