@@ -128,7 +128,7 @@ jobs:
 
       - name: Wait for ECR & ECS Stack Completion
         run: |
-          STACK_NAME=${{ env.PROJECT_NAME }}-ECR_ECS_Stack
+          STACK_NAME=${{ env.PROJECT_NAME }}-ECRECSStack
           aws cloudformation wait stack-create-complete --stack-name $STACK_NAME || \
           aws cloudformation wait stack-update-complete --stack-name $STACK_NAME || \
           echo "No updates to be performed for $STACK_NAME."
