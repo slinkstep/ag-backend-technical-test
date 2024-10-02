@@ -1,6 +1,34 @@
 # Backend Technical Test Project
 
-  
+## Table of Contents
+
+- [Introduction](#introduction)
+- [Features](#features)
+- [Architecture Diagram](#architecture-diagram)
+  - [Infrastructure](#infrastructure)
+  - [Database](#database)
+- [Deployed Endpoint](#deployed-endpoint)
+- [GitHub Actions Workflow Overview](#github-actions-workflow-overview)
+  - [Workflow Triggers](#workflow-triggers)
+  - [General Behavior](#general-behavior)
+
+- [Local Version](#local-version)
+  - [Prerequisites](#prerequisites)
+  - [Steps](#steps)
+  - [Configuration](#configuration)
+  - [Running the Application](#running-the-application)
+    - [Development Mode](#development-mode)
+    - [Production Mode](#production-mode)
+    - [Accessing the Application](#accessing-the-application)
+    - [GraphQL Playground](#graphql-playground)
+- [API Documentation](#api-documentation)
+  - [User Operations](#user-operations)
+  - [Admin Operations](#admin-operations)
+  - [Betting Operations](#betting-operations)
+  - [Authentication and Authorization](#authentication-and-authorization)
+  - [Betting Process](#betting-process)
+
+- [Future Steps](#future-steps)
 
 ## Introduction
 
@@ -88,6 +116,8 @@ The project utilizes GitHub Actions to automate the deployment of both the infra
     - **ECS Service Update** : Updates the ECS service to deploy the new Docker image, ensuring the application runs with the latest code.
  
     - **Service Stabilization** : Waits for the ECS service to stabilize, confirming that the new version is running successfully.
+
+    - **API GATEWAY Update** : Updated the API GATEWAY to point to the lates version of the task running in the ECS service.
 
 # LOCAL VERSION
 
@@ -665,4 +695,12 @@ All financial movements are recorded:
   
 
 
+
+## Future Steps:
+
+Include a firestore listener for adding real time bet settlement and rollback requests (from admin users or other API's interacting with the system)
+
+- Apply a system for dynamicly set results of specific bet rounds and process the corresponding payments on open bets
+
+- Apply a system for rollin back results on specific bet rounds
 
