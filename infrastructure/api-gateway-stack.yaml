@@ -1,0 +1,50 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  API Gateway Stack: Creates an API Gateway that forwards traffic to the ECS task's public IP.
+
+Parameters:
+  ProjectName:
+    Type: String
+    Description: "Project name to prefix all resource names and identifiers"
+
+  PublicIP:
+    Type: String
+    Description: "Public IP of the ECS Task"
+
+Resources:
+  # API Gateway
+  ECSAPIGateway:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: !Sub "${ProjectName}-APIGateway"
+      ProtocolType: HTTP
+
+  ECSAPIGatewayStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref ECSAPIGateway
+      StageName: "$default"
+      AutoDeploy: true
+
+  ECSAPIGatewayIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref ECSAPIGateway
+      IntegrationType: HTTP_PROXY
+      IntegrationUri: !Sub "http://${PublicIP}:80"  # Use the Public IP passed as a parameter
+      IntegrationMethod: ANY
+      PayloadFormatVersion: '1.0'  # Required parameter to specify the payload version
+
+  ECSAPIGatewayRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ECSAPIGateway
+      RouteKey: "ANY /{proxy+}"
+      Target: !Sub "integrations/${ECSAPIGatewayIntegration}"
+
+Outputs:
+  ECSAPIGatewayUrl:
+    Description: URL of the API Gateway to access ECS task
+    Value: !Sub "https://${ECSAPIGateway}.execute-api.${AWS::Region}.amazonaws.com"
+    Export:
+      Name: !Sub "${ProjectName}-APIGatewayURL"

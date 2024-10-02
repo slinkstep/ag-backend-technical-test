@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/sequelize';
 import { Transaction } from 'sequelize/models';
 import { Transaction as DBtransaction } from 'sequelize';
 import { CreateTransactionDto } from '../dto/create-transaction.dto';
+import { TransactionCategory } from 'sequelize/models/enums/enums';
 
 @Injectable()
 export class TransactionsRepository {
@@ -31,6 +32,16 @@ export class TransactionsRepository {
   async findByUserId(userId: number): Promise<Transaction[]> {
     return await this.transactionModel.findAll({
       where: { userId },
+      order: [['createdAt', 'DESC']],
+    });
+  }
+
+  async findByUserIdAndCampaignId(
+    userId: number,
+    campaignId: number,
+  ): Promise<Transaction> {
+    return await this.transactionModel.findOne({
+      where: { userId, campaignId, category: TransactionCategory.CAMPAIGN },
       order: [['createdAt', 'DESC']],
     });
   }

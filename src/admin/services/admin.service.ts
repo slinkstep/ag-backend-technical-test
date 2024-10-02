@@ -1,7 +1,4 @@
-import {
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 
 import { JwtService } from '@nestjs/jwt';
 import { Role } from 'src/auth/enums/role.enum';
@@ -13,6 +10,8 @@ import { AuthResponseAdmin } from 'graphql/dto/login.response.admin.dto';
 import { AdminsRepository } from '../repositories/admin.repository';
 import { CreateAdminDto } from '../dto/create-admin.dto';
 import { AuthService } from 'src/auth/services/auth.service';
+import { ResetUserPasswordResponse } from 'graphql/dto/reset-user-password.response.user.dto';
+import { UserStatus } from 'sequelize/models/enums/enums';
 
 @Injectable()
 export class AdminService {
@@ -51,6 +50,10 @@ export class AdminService {
       throw new UnauthorizedException('Admin not found.');
     }
 
+    if (admin.status === UserStatus.BLOCKED) {
+      throw new UnauthorizedException('Admin is blocked');
+    }
+
     const firebaseUser =
       await this.firebaseService.verifyUserWithEmailAndPassword(
         input.authProviderEmail,
@@ -72,5 +75,21 @@ export class AdminService {
     });
 
     return { admin, token };
+  }
+
+  async resetAdminPassword(email: string): Promise<ResetUserPasswordResponse> {
+    const admin = await this.adminsRepository.findByEmail(email);
+
+    if (!admin) {
+      throw new UnauthorizedException('Admin not found.');
+    }
+
+    if (admin.status === UserStatus.BLOCKED) {
+      throw new UnauthorizedException('Admin is blocked');
+    }
+
+    const link = await this.authService.resetUserPassword(email);
+
+    return { resetLink: link } as ResetUserPasswordResponse;
   }
 }

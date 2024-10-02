@@ -1,0 +1,127 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  Database & SSM Stack: Creates an RDS MySQL instance,
+  and stores configuration parameters in SSM Parameter Store with project-specific prefixes.
+
+Parameters:
+  ProjectName:
+    Type: String
+    Description: "Project name to prefix all resource names and identifiers"
+    AllowedPattern: "^[a-zA-Z0-9-]+$"
+    ConstraintDescription: "Project name can only contain alphanumeric characters and hyphens."
+
+  DBPassword:
+    Type: String
+    NoEcho: true
+    Description: Master password for RDS MySQL
+
+  DBUserName:
+    Type: String
+    Description: Master username for RDS MySQL
+
+  DBName:
+    Type: String
+    Description: Master db name for RDS MySQL
+
+Resources:
+
+
+  # 1. DB Subnet Group
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Subnets for RDS MySQL
+      SubnetIds:
+        - !ImportValue
+            Fn::Sub: "${ProjectName}-NetworkingPublicSubnetId"  # Change to Public Subnet
+        - !ImportValue
+            Fn::Sub: "${ProjectName}-NetworkingPublicSubnet2Id"  # Change to Public Subnet
+        # - !ImportValue
+        #     Fn::Sub: "${ProjectName}-NetworkingPrivateSubnetId"  # Use Fn::Sub for substitution within ImportValue
+        # - !ImportValue
+        #     Fn::Sub: "${ProjectName}-NetworkingPrivateSubnet2Id"  # Use Fn::Sub for substitution within ImportValue
+        
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-RDSSubnetGroup"
+
+  # 2. RDS Instance
+  RDSInstance:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBInstanceIdentifier: !Sub "${ProjectName}-DBInstance-${AWS::AccountId}"
+      AllocatedStorage: 20
+      DBInstanceClass: db.t3.micro
+      Engine: MySQL
+      EngineVersion: '8.0'
+      MasterUsername: !Ref DBUserName
+      MasterUserPassword: !Ref DBPassword
+      DBName: !Ref DBName
+      VPCSecurityGroups:
+        - !ImportValue 
+            Fn::Sub: "${ProjectName}-NetworkingRDSSecurityGroupId"
+      DBSubnetGroupName: !Ref DBSubnetGroup
+      PubliclyAccessible: true
+      StorageType: gp2
+      MultiAZ: false
+      BackupRetentionPeriod: 7
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-RDSInstance"
+    DeletionPolicy: Snapshot
+
+
+  # 3. SSM Parameters
+  DBEndpoint:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${ProjectName}/db/endpoint"
+      Type: String
+      Value: !GetAtt RDSInstance.Endpoint.Address
+      Description: RDS MySQL Endpoint
+
+  DBPort:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${ProjectName}/db/port"
+      Type: String
+      Value: !GetAtt RDSInstance.Endpoint.Port
+      Description: RDS MySQL Port
+
+  DBNameParam:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${ProjectName}/db/name"
+      Type: String
+      Value: !Ref DBName
+      Description: RDS MySQL Database Name
+
+
+  DBUsernameParam:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${ProjectName}/db/username"
+      Type: String
+      Value: !Ref DBUserName
+      Description: RDS MySQL Username
+
+  DBPasswordParam:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${ProjectName}/db/password"
+      Type: String
+      Value: !Ref DBPassword
+      Description: RDS MySQL Password
+
+Outputs:
+  RDSInstanceEndpoint:
+    Description: Endpoint of the RDS MySQL Instance
+    Value: !GetAtt RDSInstance.Endpoint.Address
+    Export:
+      Name: !Sub "${ProjectName}-DatabaseRDSInstanceEndpoint"
+
+  RDSInstancePort:
+    Description: Port of the RDS MySQL Instance
+    Value: !GetAtt RDSInstance.Endpoint.Port
+    Export:
+      Name: !Sub "${ProjectName}-DatabaseRDSInstancePort"

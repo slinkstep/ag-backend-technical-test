@@ -82,7 +82,9 @@ export class BetService {
         let payout = 0;
         if (isWin) {
           payout = input.amount * (1 / input.chance) * margin;
+          payout = Number(payout.toFixed(2)); // Round payout to 2 decimal digits
 
+          // If type of balance is bonus, just pay the net profit
           if (input.isBonus) {
             payout = payout - input.amount;
           }
@@ -185,5 +187,9 @@ export class BetService {
       this.logger.error('Failed to create bet', error);
       throw error;
     }
+  }
+
+  async getBestBetPerUser(limit: number): Promise<Bet[]> {
+    return await this.betsRepository.getBestBetPerUser(limit);
   }
 }

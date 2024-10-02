@@ -1,4 +1,4 @@
-import { Resolver, Mutation, Args, Context } from '@nestjs/graphql';
+import { Resolver, Mutation, Args, Context, Query, Int } from '@nestjs/graphql';
 import { BetService } from '../services/bet.service';
 import { BetType } from 'graphql/types/bet.type';
 import { CreateBetInput } from 'graphql/inputs/bet/bet.input';
@@ -19,9 +19,17 @@ export class BetResolver {
     const user = context.req.user;
 
     if (!user || !user.sub) {
-      throw new BadRequestException('Invalid admin credentials.');
+      throw new BadRequestException('Invalid user credentials.');
     }
 
     return this.betService.createBet(createBetInput, user.sub);
+  }
+
+  @Roles(Role.User)
+  @Query(() => [BetType], { name: 'getBestBetPerUser' })
+  async getBestBetPerUser(
+    @Args('limit', { type: () => Int }) limit: number,
+  ): Promise<BetType[]> {
+    return this.betService.getBestBetPerUser(limit);
   }
 }

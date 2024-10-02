@@ -61,4 +61,10 @@ export class AuthService {
 
     return createdUser;
   }
+
+  async resetUserPassword(email: string): Promise<string> {
+    const link = await this.firebaseService.requestUserPasswordReset(email);
+
+    return link;
+  }
 }

@@ -16,7 +16,11 @@ import {
   BalanceType,
   TransactionCategory,
   TransactionStatus,
+  UserStatus,
 } from 'sequelize/models/enums/enums';
+import { ResetUserPasswordResponse } from 'graphql/dto/reset-user-password.response.user.dto';
+import { UserClaimCampaignInput } from 'graphql/inputs/user/claim.campaign.user.input';
+import { ClaimCampaignResponse } from 'graphql/dto/claim.campaign.response.user.dto';
 
 @Injectable()
 export class UsersService {
@@ -102,6 +106,10 @@ export class UsersService {
       throw new UnauthorizedException('User not found.');
     }
 
+    if (user.status === UserStatus.BLOCKED) {
+      throw new UnauthorizedException('Admin is blocked');
+    }
+
     const firebaseUser =
       await this.firebaseService.verifyUserWithEmailAndPassword(
         input.authProviderEmail,
@@ -123,5 +131,84 @@ export class UsersService {
     });
 
     return { user, token };
+  }
+
+  async resetUserPassword(email: string): Promise<ResetUserPasswordResponse> {
+    const user = await this.usersRepository.findByEmail(email);
+
+    if (!user) {
+      throw new UnauthorizedException('User not found.');
+    }
+
+    if (user.status === UserStatus.BLOCKED) {
+      throw new UnauthorizedException('User is blocked');
+    }
+
+    const link = await this.authService.resetUserPassword(email);
+
+    return { resetLink: link } as ResetUserPasswordResponse;
+  }
+
+  async claimCampaign(
+    input: UserClaimCampaignInput,
+    userId: number,
+  ): Promise<ClaimCampaignResponse> {
+    const user = await this.usersRepository.findById(userId);
+
+    if (!user) {
+      throw new UnauthorizedException('User not found.');
+    }
+
+    if (user.status === UserStatus.BLOCKED) {
+      throw new UnauthorizedException('User is blocked');
+    }
+
+    const campaign = await this.campaignService.validatePromoCode(
+      input.promoCode,
+      userId,
+      input.category,
+    );
+
+    if (!campaign) {
+      return { campaign: null, claimed: false };
+    }
+
+    // Create campaign playableBalanceAmount transaction
+    if (campaign && campaign.playableBalanceAmount) {
+      user.realBalance += campaign.playableBalanceAmount;
+
+      const playableBalanceTransaction: CreateTransactionDto = {
+        userId: user.id,
+        amount: campaign.playableBalanceAmount,
+        category: TransactionCategory.CAMPAIGN,
+        status: TransactionStatus.APPROVED,
+        balance: BalanceType.REAL_BALANCE,
+        campaignId: campaign.id,
+      };
+
+      await this.transactionsService.createTransaction(
+        playableBalanceTransaction,
+      );
+    }
+
+    // Create campaign transaction
+    if (campaign && campaign.bonusBalanceAmount) {
+      user.bonusBalance += campaign.bonusBalanceAmount;
+
+      const bonusBalanceTransaction: CreateTransactionDto = {
+        userId: user.id,
+        amount: campaign.bonusBalanceAmount,
+        category: TransactionCategory.CAMPAIGN,
+        status: TransactionStatus.APPROVED,
+        balance: BalanceType.BONUS_BALANCE,
+        campaignId: campaign.id,
+      };
+
+      await this.transactionsService.createTransaction(bonusBalanceTransaction);
+    }
+
+    await user.save();
+
+    return { campaign, claimed: true };
   }
 }

@@ -1,17 +1,10 @@
-import {
-  BadRequestException,
-  ConflictException,
-  ForbiddenException,
-  Injectable,
-  InternalServerErrorException,
-  NotFoundException,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import admin from 'firebase-admin';
 import { UserRecord } from 'firebase-admin/lib/auth/user-record';
 import { GlobalLogger } from 'src/logger/global.logger.service';
+import { FirebaseErrorMapper } from './firebase.error.map.service';
 
 @Injectable()
 export class FirebaseProviderService {
@@ -21,6 +14,7 @@ export class FirebaseProviderService {
   constructor(
     private readonly configService: ConfigService,
     private readonly logger: GlobalLogger,
+    private readonly firebaseErrorMapper: FirebaseErrorMapper,
   ) {}
 
   public getFirebase() {
@@ -66,36 +60,7 @@ export class FirebaseProviderService {
       this.logger.error('Failed to create user in auth service', error);
 
       if (error.code) {
-        switch (error.code) {
-          case 'auth/email-already-exists':
-            throw new ConflictException('Email is already registered.');
-          case 'auth/invalid-email':
-            throw new BadRequestException('The email address is invalid.');
-          case 'auth/invalid-password':
-            throw new BadRequestException('The password is invalid.');
-          case 'auth/invalid-display-name':
-            throw new BadRequestException('The display name is invalid.');
-          case 'auth/operation-not-allowed':
-            throw new ForbiddenException(
-              'Email/password accounts are not enabled.',
-            );
-          case 'auth/weak-password':
-            throw new BadRequestException('The password is too weak.');
-          case 'auth/invalid-uid':
-            throw new BadRequestException('The provided UID is invalid.');
-          case 'auth/uid-already-exists':
-            throw new ConflictException('The UID is already in use.');
-          case 'auth/invalid-provider-id':
-            throw new BadRequestException('The provider ID is invalid.');
-          case 'auth/missing-email':
-            throw new BadRequestException('The email field is missing.');
-          case 'auth/missing-password':
-            throw new BadRequestException('The password field is missing.');
-          default:
-            throw new InternalServerErrorException(
-              'An unexpected error occurred while creating the user.',
-            );
-        }
+        this.firebaseErrorMapper.mapAndThrow(error.code);
       }
     }
   }
@@ -136,41 +101,7 @@ export class FirebaseProviderService {
       if (axios.isAxiosError(error) && error.response?.data?.error?.message) {
         const firebaseErrorMessage = error.response.data.error.message;
 
-        switch (firebaseErrorMessage) {
-          case 'EMAIL_NOT_FOUND':
-            throw new NotFoundException(
-              'No user found with the provided email.',
-            );
-          case 'INVALID_PASSWORD':
-            throw new UnauthorizedException('Incorrect password provided.');
-          case 'USER_DISABLED':
-            throw new ForbiddenException(
-              'This user account has been disabled.',
-            );
-          case 'INVALID_EMAIL':
-            throw new BadRequestException('The email address is invalid.');
-          case 'OPERATION_NOT_ALLOWED':
-            throw new ForbiddenException('Email/password sign-in is disabled.');
-          case 'TOO_MANY_ATTEMPTS_TRY_LATER':
-            throw new BadRequestException(
-              'Too many failed attempts. Please try again later.',
-            );
-          case 'MISSING_PASSWORD':
-            throw new BadRequestException('The password field is missing.');
-          case 'MISSING_EMAIL':
-            throw new BadRequestException('The email field is missing.');
-          case 'INVALID_LOGIN_CREDENTIALS':
-            throw new BadRequestException('Invalid login credentials.');
-          case 'INVALID_REQUEST':
-            throw new BadRequestException(
-              'The request is invalid or malformed.',
-            );
-
-          default:
-            throw new InternalServerErrorException(
-              'An unexpected error occurred during authentication.',
-            );
-        }
+        this.firebaseErrorMapper.mapAndThrow(firebaseErrorMessage);
       }
     }
   }

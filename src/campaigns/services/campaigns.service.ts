@@ -2,16 +2,22 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 
 import { CreateCampaignInput } from 'graphql/inputs/campaign/create.campaign.input';
 import { Campaign } from 'sequelize/models';
 import { CampaignCategory } from 'sequelize/models/enums/enums';
 import { CampaignRepository } from '../repositories/campaign.repository';
+import { TransactionsRepository } from 'src/transactions/repositores/transactions.repository';
 
 @Injectable()
 export class CampaignService {
-  constructor(private campaignRepository: CampaignRepository) {}
+  constructor(
+    private campaignRepository: CampaignRepository,
+
+    private transactionsRepository: TransactionsRepository,
+  ) {}
 
   async findAll(): Promise<Campaign[]> {
     return this.campaignRepository.findAll();
@@ -28,6 +34,7 @@ export class CampaignService {
 
   async validatePromoCode(
     promoCode: string,
+    userId?: number,
     category?: CampaignCategory,
   ): Promise<Campaign> {
     const campaign = await this.campaignRepository.findByPromoCode(promoCode);
@@ -43,6 +50,20 @@ export class CampaignService {
       throw new BadRequestException(
         `Campaign with promo code ${promoCode} does not match the required category`,
       );
+    }
+
+    if (userId) {
+      const userCampaignTransaction =
+        await this.transactionsRepository.findByUserIdAndCampaignId(
+          userId,
+          campaign.id,
+        );
+
+      if (userCampaignTransaction) {
+        throw new UnauthorizedException(
+          `Campaign with promo code ${promoCode} was already claimed for user`,
+        );
+      }
     }
 
     return campaign;

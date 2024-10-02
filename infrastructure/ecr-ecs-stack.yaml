@@ -1,0 +1,124 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  ECR & ECS Stack: Creates an ECR repository and an ECS Cluster with Fargate
+  tasks, including an Application Load Balancer, all prefixed with the ProjectName.
+
+Parameters:
+  ProjectName:
+    Type: String
+    Description: "Project name to prefix all resource names and identifiers"
+    AllowedPattern: "^[a-zA-Z0-9-]+$"
+    ConstraintDescription: "Project name can only contain alphanumeric characters and hyphens."
+
+  ImageUri:
+    Type: String
+    Description: "URI of the Docker image stored in ECR to use for the ECS Task"
+
+Resources:
+
+  # 1. ECS Cluster
+  ECSCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: !Sub "${ProjectName}-ECSCluster"
+
+  # 2. Task Definition
+  ECSTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub "${ProjectName}-task"
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      Cpu: '256'        # 0.25 vCPU
+      Memory: '512'     # 0.5 GB
+      ExecutionRoleArn: !GetAtt ECSExecutionRole.Arn
+      TaskRoleArn: !GetAtt ECSTaskRole.Arn
+      ContainerDefinitions:
+        - Name: !Sub "${ProjectName}-container"
+          Image: !Ref ImageUri      # Use ImageUri from the passed parameter
+          PortMappings:
+            - ContainerPort: 80
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref LogGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: !Sub "${ProjectName}"
+
+  # 3. IAM Roles
+  ECSExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${ProjectName}-ECSExecutionRole"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ecs-tasks.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+      Path: "/"
+
+  ECSTaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${ProjectName}-ECSTaskRole"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ecs-tasks.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: !Sub "${ProjectName}-SSMAccessPolicy"
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ssm:GetParameter
+                  - ssm:GetParameters
+                Resource:
+                  - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${ProjectName}/db/*"
+      Path: "/"
+
+  # 4. ECS Service
+  ECSService:
+    Type: AWS::ECS::Service
+    Properties:
+      Cluster: !Ref ECSCluster
+      DesiredCount: 1
+      LaunchType: FARGATE
+      TaskDefinition: !Ref ECSTaskDefinition
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED  # Assign public IP to ECS Task
+          Subnets:
+            - !ImportValue 
+                Fn::Sub: "${ProjectName}-NetworkingPublicSubnetId"
+          SecurityGroups:
+            - !ImportValue 
+                Fn::Sub: "${ProjectName}-NetworkingECSSecurityGroupId"
+
+  # 5. CloudWatch Log Group
+  LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/ecs/${ProjectName}"
+      RetentionInDays: 14
+
+Outputs:
+
+  ECSClusterName:
+    Description: Name of the ECS Cluster
+    Value: !Ref ECSCluster
+    Export:
+      Name: !Sub "${ProjectName}-ECSClusterName"
