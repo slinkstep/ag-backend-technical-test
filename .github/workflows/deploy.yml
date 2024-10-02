@@ -196,7 +196,7 @@ jobs:
           # Force ECS Service to use the latest task definition with new Docker image
           aws ecs update-service \
             --cluster ${{ env.PROJECT_NAME }}-ECSCluster \
-            --service ${{ env.PROJECT_NAME }}-service \
+            --service ${{ env.PROJECT_NAME }}-ECSService \
             --force-new-deployment
 
       - name: Notify Application Deployment Completion

@@ -94,6 +94,7 @@ Resources:
   ECSService:
     Type: AWS::ECS::Service
     Properties:
+      ServiceName: !Sub "${ProjectName}-ECSService"
       Cluster: !Ref ECSCluster
       DesiredCount: 1
       LaunchType: FARGATE
