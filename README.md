@@ -63,11 +63,11 @@ The project infrastructure is fully available at the project on the infrastructu
 
 ### Infrastructure
 
-![INFRA ARCHITECTURE](assets/ARCHITECTURE.png)
+![INFRA ARCHITECTURE](https://firebasestorage.googleapis.com/v0/b/ag-backend-test.appspot.com/o/ARCHITECTURE_DIAGRAM.png?alt=media&token=83ceb4c7-fa20-4b91-819a-3787d5a71989)
 
 ### Database
 
-![DB DIAGRAM](assets/DB_DIAGRAM.png)
+![DB DIAGRAM](https://firebasestorage.googleapis.com/v0/b/ag-backend-test.appspot.com/o/DB_DIAGRAM.png?alt=media&token=0a7aad7e-da1e-4c76-9af3-659637a9544d)
 
 ## Deployed Endpoint
 
