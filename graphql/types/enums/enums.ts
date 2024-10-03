@@ -16,6 +16,8 @@ export enum TransactionCategory {
   BET = 'bet',
   REFUND = 'refund',
   CAMPAIGN = 'campaign',
+  POSITIVE_ADJUSTMENT = 'postitive_adjustment',
+   NEGATIVE_ADJUSTMENT = 'negative_adjustment'
 }
 
 export enum TransactionStatus {

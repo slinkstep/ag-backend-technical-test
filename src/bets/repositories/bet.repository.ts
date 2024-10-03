@@ -3,6 +3,7 @@ import { InjectConnection, InjectModel } from '@nestjs/sequelize';
 import { Bet } from 'sequelize/models';
 import { CreateBetDto } from '../dto/create-bet.dto';
 import { Sequelize, Transaction } from 'sequelize';
+import { BetStatus } from 'sequelize/models/enums/enums';
 
 @Injectable()
 export class BetRepository {
@@ -30,6 +31,7 @@ export class BetRepository {
         SELECT b.*, 
                ROW_NUMBER() OVER (PARTITION BY b.user_id ORDER BY b.payout DESC, b.created_at DESC) AS rn
         FROM bets b
+        WHERE b.payout IS NOT NULL
       )
       SELECT rb.id, rb.user_id, rb.amount, rb.payout, rb.round_id, rb.margin, rb.is_bonus, rb.win, rb.status, rb.created_at, rb.updated_at
       FROM RankedBets rb
@@ -44,5 +46,16 @@ export class BetRepository {
     );
 
     return bets;
+  }
+
+  async findByRoundIdAndStatus(
+    roundId: string,
+    status: BetStatus,
+    transaction?: Transaction,
+  ): Promise<Bet[]> {
+    return await this.betModel.findAll({
+      where: { roundId, status },
+      transaction,
+    });
   }
 }

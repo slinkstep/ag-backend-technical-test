@@ -1,4 +1,8 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 
 import { JwtService } from '@nestjs/jwt';
 import { Role } from 'src/auth/enums/role.enum';
@@ -11,7 +15,12 @@ import { AdminsRepository } from '../repositories/admin.repository';
 import { CreateAdminDto } from '../dto/create-admin.dto';
 import { AuthService } from 'src/auth/services/auth.service';
 import { ResetUserPasswordResponse } from 'graphql/dto/reset-user-password.response.user.dto';
-import { UserStatus } from 'sequelize/models/enums/enums';
+import { BetStatus, UserStatus } from 'sequelize/models/enums/enums';
+import { SettlementRequestInput } from 'graphql/inputs/admin/settle.bet.admin.input';
+import { SettlementRequestResponse } from 'graphql/dto/settle.bet.response.admin.dto';
+import { RollbackRequestInput } from 'graphql/inputs/admin/rollback.bet.admin.input';
+import { RollbackRequestResponse } from 'graphql/dto/rollback.bet.response.admin.dto';
+import { BetRepository } from 'src/bets/repositories/bet.repository';
 
 @Injectable()
 export class AdminService {
@@ -20,6 +29,7 @@ export class AdminService {
     private firebaseService: FirebaseProviderService,
     private jwtService: JwtService,
     private authService: AuthService,
+    private betsRepository: BetRepository,
   ) {}
 
   async registerUser(input: RegisterAdminInput): Promise<Admin> {
@@ -91,5 +101,88 @@ export class AdminService {
     const link = await this.authService.resetUserPassword(email);
 
     return { resetLink: link } as ResetUserPasswordResponse;
+  }
+
+  async requestSettlement(
+    input: SettlementRequestInput,
+  ): Promise<SettlementRequestResponse> {
+    const { roundId, chance } = input;
+
+    const firestore = this.firebaseService.getFirestore();
+    const settlementDocRef = firestore.collection('settlements').doc(roundId);
+
+    await settlementDocRef.set(
+      {
+        roundId,
+        chance,
+        finished: true,
+        settlementProcessed: false,
+        trigerRollBack: false,
+        // rollbacked: false,
+        // settlementDate: null,
+        // settlements: null,
+        // rollbacks: null,
+        // rollbackDate: null,
+        // trigerRollBack: false
+      },
+      { merge: true },
+    );
+
+    return {
+      success: true,
+      message: 'Settlement request submitted successfully',
+    };
+  }
+
+  async requestRollback(
+    input: RollbackRequestInput,
+  ): Promise<RollbackRequestResponse> {
+    const { roundId } = input;
+
+    const firestore = this.firebaseService.getFirestore();
+    const settlementDocRef = firestore.collection('settlements').doc(roundId);
+
+    const doc = await settlementDocRef.get();
+    if (!doc.exists) {
+      throw new BadRequestException('Invalid roundId');
+    }
+
+    const data = doc.data();
+    if (!data.settlementProcessed || !data.finished || data.trigerRollBack) {
+      throw new BadRequestException('Cannot trigger rollback for this round');
+    }
+
+    // Ensure there are no open bets before triggering rollback
+    const openBets = await this.betsRepository.findByRoundIdAndStatus(
+      roundId,
+      BetStatus.OPEN,
+    );
+    if (openBets.length > 0) {
+      // trigger settlement again
+
+      await settlementDocRef.set(
+        {
+          finished: true,
+          settlementProcessed: false,
+          trigerRollBack: false,
+        },
+        { merge: true },
+      );
+
+      throw new BadRequestException(
+        'Cannot rollback, there are open bets for this round',
+      );
+    }
+
+    // Update Firestore with rollback request
+    await settlementDocRef.update({
+      trigerRollBack: true,
+      rollbacked: false,
+    });
+
+    return {
+      success: true,
+      message: 'Rollback request submitted successfully',
+    };
   }
 }
