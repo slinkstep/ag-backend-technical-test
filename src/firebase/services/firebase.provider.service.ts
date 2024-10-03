@@ -43,6 +43,9 @@ export class FirebaseProviderService {
     return this.getFirebase().auth();
   }
 
+  public getFirestoreAdmin(): typeof admin.firestore {
+    return admin.firestore;
+  }
   public async createUserWithEmailAndPassword(
     email: string,
     password: string,

@@ -24,7 +24,7 @@ export default {
         allowNull: false,
       },
       category: {
-        type: DataTypes.ENUM('profit', 'bet', 'refund', 'campaign'),
+        type: DataTypes.ENUM('profit', 'bet', 'refund', 'campaign', 'postitive_adjustment', 'negative_adjustment'),
         allowNull: false,
       },
       status: {

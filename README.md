@@ -570,6 +570,30 @@ payout
 
 ```
 
+
+- **Admin request bet settlements on roundId**
+
+```graphql
+mutation {
+  requestSettlement( input:{  roundId: "12345", chance: 0.3 }) {
+    success
+    message
+  }
+}
+```
+
+- **Admin request rollback settlements on roundId**
+
+```graphql
+mutation {
+  requestRollback(input: { roundId: "12345" }) {
+    success
+    message
+  }
+}
+```
+
+
 ### Authentication and Authorization 
 
 Most of the application's endpoints are protected and require authentication. To interact with these endpoints, you need to:
@@ -667,7 +691,7 @@ If `simulateSettlement` is `true`, the bet is settled immediately:
  
 - **Payout Calculation** : 
 
-  - **Formula** : `Payout = Amount * (1 / Chance) * Margin`
+  - **Formula** : `Payout = Amount * (1 / Chance) * (1-Margin)`
  
   - **Margin** : A value fetched from AWS SSM Parameter Store (default is 0.05 or 5%).
  

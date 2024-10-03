@@ -3,7 +3,10 @@ import { InjectModel } from '@nestjs/sequelize';
 import { Transaction } from 'sequelize/models';
 import { Transaction as DBtransaction } from 'sequelize';
 import { CreateTransactionDto } from '../dto/create-transaction.dto';
-import { TransactionCategory } from 'sequelize/models/enums/enums';
+import {
+  TransactionCategory,
+  TransactionStatus,
+} from 'sequelize/models/enums/enums';
 
 @Injectable()
 export class TransactionsRepository {
@@ -60,5 +63,15 @@ export class TransactionsRepository {
     return await this.transactionModel.destroy({
       where: { id },
     });
+  }
+
+  async cancelTransactionsByBetId(
+    betId: number,
+    transaction?: DBtransaction,
+  ): Promise<number[]> {
+    return await this.transactionModel.update(
+      { status: TransactionStatus.CANCELED },
+      { where: { betId }, transaction },
+    );
   }
 }
