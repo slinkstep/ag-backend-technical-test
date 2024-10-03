@@ -119,6 +119,25 @@ The project utilizes GitHub Actions to automate the deployment of both the infra
 
     - **API GATEWAY Update** : Updated the API GATEWAY to point to the lates version of the task running in the ECS service.
 
+## Firestore Listeners (Extra Feature)
+
+In this project, Firestore listeners play a crucial role in managing the lifecycle of betting rounds by handling settlements and rollbacks in real-time. These listeners continuously monitor specific documents within the Firestore database, specifically targeting the settlements collection where each document represents a unique betting round identified by its roundId. This applies for bets that were placed with the option `simulateSettlement: false`
+
+### How It Works
+
+
+1. **Monitoring for Settlement Requests** : 
+
+  - The Firestore listener observes changes to settlement documents. When a document indicates that a round has finished (finished: true) and settlement has not yet been processed (`settlementProcessed: false`), the listener automatically triggers the settlement process.
+  During settlement, the system evaluates each open bet associated with the roundId, determines the outcome based on predefined chances, updates bet statuses, processes user payouts, and records all relevant transactions. Once completed, it updates the Firestore document to mark the settlement as processed and logs the settlement details.
+
+2. **Handling Rollback Requests** :
+
+  - Administrators can initiate a rollback by updating a settlement document to trigger a rollback (`trigerRollBack: true`). The listener detects this change and verifies that there are no open bets remaining for the specified round.
+  If conditions are met, the rollback process is executed, which involves reversing all transactions related to the bets of that round, resetting bet statuses to open, and restoring user balances accordingly. The Firestore document is then updated to reflect the rollback status and logs the rollback details.
+
+
+
 # LOCAL VERSION
 
 ## Prerequisites
